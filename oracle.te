@@ -1,0 +1,82 @@
+policy_module(oracle, 1.0.0)
+
+########################################
+#
+# Declarations
+#
+
+attribute_role oracle_roles;
+roleattribute system_r oracle_roles;
+
+type oracle_t;
+type oracle_exec_t;
+type oracle_content_t;
+type oracle_port_t;
+application_domain(oracle_t, oracle_exec_t, oracle_content_t, oracle_port_t)
+role oracle_roles types oracle_t;
+
+permissive oracle_t;
+
+########################################
+#
+# oracle local policy
+#
+allow oracle_t self:capability { chown setgid setuid sys_admin sys_chroot };
+allow oracle_t self:process { fork ptrace setpgid setrlimit signal_perms };
+
+allow oracle_t self:fifo_file manage_fifo_file_perms;
+allow oracle_t self:unix_stream_socket create_stream_socket_perms;
+
+allow oracle_t oracle_content_t:file read;
+allow oracle_t oracle_content_t:file write;
+allow oracle_t oracle_content_t:dir read;
+allow oracle_t oracle_content_t:dir write;
+allow oracle_t oracle_content_t:dir list_dir_perms;
+
+corenet_all_recvfrom_unlabeled(oracle_port_t)
+corenet_all_recvfrom_netlabel(oracle_port_t)
+corenet_tcp_sendrecv_all_if(oracle_port_t)
+corenet_udp_sendrecv_all_if(oracle_port_t)
+corenet_tcp_sendrecv_all_nodes(oracle_port_t)
+corenet_udp_sendrecv_all_nodes(oracle_port_t)
+corenet_tcp_sendrecv_all_ports(oracle_port_t)
+corenet_udp_sendrecv_all_ports(oracle_port_t)
+corenet_tcp_bind_all_nodes(oracle_port_t)
+corenet_tcp_bind_oracle_port(oracle_port_t)
+
+corenet_tcp_sendrecv_oracle_port(oracle_port_t)
+corenet_tcp_connect_oracle_port(oracle_port_t)
+corenet_tcp_connect_oracle_port(oracle_port_t)
+corenet_tcp_connect_oracle_port(oracle_port_t)
+
+corenet_udp_bind_all_nodes(oracle_port_t)
+corenet_tcp_connect_generic_port(oracle_port_t)
+
+gen_require(`
+	type lo_node_t;
+')
+
+allow oracle_t lo_node_t:udp_socket node_bind;
+corenet_udp_bind_all_nodes(oracle_t)
+corenet_udp_bind_generic_node(oracle_t)
+
+read_files_pattern(oracle_t,oracle_content_t,oracle_content_t)
+read_lnk_files_pattern(oracle_t,oracle_content_t,oracle_content_t)
+
+
+
+domain_use_interactive_fds(oracle_t)
+
+files_read_etc_files(oracle_t)
+
+auth_use_nsswitch(oracle_t)
+
+logging_send_syslog_msg(oracle_t)
+
+miscfiles_read_localization(oracle_t)
+
+sysnet_dns_name_resolve(oracle_t)
+
+optional_policy(`
+	kerberos_use(oracle_t)
+')

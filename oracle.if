@@ -1,0 +1,95 @@
+
+## <summary>policy for oracle</summary>
+
+########################################
+## <summary>
+##	Execute oracle_exec_t in the oracle domain.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`oracle_domtrans',`
+	gen_require(`
+		type oracle_t, oracle_exec_t, oracle_content_t, oracle_port_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, oracle_exec_t, oracle_t)
+')
+
+######################################
+## <summary>
+##	Execute oracle in the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`oracle_exec',`
+	gen_require(`
+		type oracle_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	can_exec($1, oracle_exec_t)
+')
+
+########################################
+## <summary>
+##	Execute oracle in the oracle domain, and
+##	allow the specified role the oracle domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	The role to be allowed the oracle domain.
+##	</summary>
+## </param>
+#
+interface(`oracle_run',`
+	gen_require(`
+		type oracle_t;
+		attribute_role oracle_roles;
+	')
+
+	oracle_domtrans($1)
+	roleattribute $2 oracle_roles;
+')
+
+########################################
+## <summary>
+##	Role access for oracle
+## </summary>
+## <param name="role">
+##	<summary>
+##	Role allowed access
+##	</summary>
+## </param>
+## <param name="domain">
+##	<summary>
+##	User domain for the role
+##	</summary>
+## </param>
+#
+interface(`oracle_role',`
+	gen_require(`
+		type oracle_t;
+		attribute_role oracle_roles;
+	')
+
+	roleattribute $1 oracle_roles;
+
+	oracle_domtrans($2)
+
+	ps_process_pattern($2, oracle_t)
+	allow $2 oracle_t:process { signull signal sigkill };
+')
