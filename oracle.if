@@ -13,7 +13,7 @@
 #
 interface(`oracle_domtrans',`
 	gen_require(`
-		type oracle_t, oracle_exec_t, oracle_content_t, oracle_port_t;
+		type oracle_t, oracle_exec_t;
 	')
 
 	corecmd_search_bin($1)
@@ -39,57 +39,42 @@ interface(`oracle_exec',`
 	can_exec($1, oracle_exec_t)
 ')
 
-########################################
+######################################
 ## <summary>
-##	Execute oracle in the oracle domain, and
-##	allow the specified role the oracle domain.
+##	Type allowed to manage oracle file and directory privileges
 ## </summary>
-## <param name="domain">
+## <param name="type">
 ##	<summary>
-##	Domain allowed to transition
-##	</summary>
-## </param>
-## <param name="role">
-##	<summary>
-##	The role to be allowed the oracle domain.
+##	Type allowed access.
 ##	</summary>
 ## </param>
 #
-interface(`oracle_run',`
+interface(`oracle_manage_all_data',`
 	gen_require(`
 		type oracle_t;
-		attribute_role oracle_roles;
+		type oracle_dir_t;
+		type oracle_exec_t;
+		type oracle_tns_exec_t;
+		type oracle_conf_t;
+		type oracle_data_t;
 	')
 
-	oracle_domtrans($1)
-	roleattribute $2 oracle_roles;
+	allow $1 oracle_dir_t:dir list_dir_perms;
+	manage_dirs_pattern($1, oracle_dir_t, oracle_dir_t)
+
+	manage_files_pattern($1, oracle_dir_t, oracle_t)
+	manage_lnk_files_pattern($1, oracle_dir_t, oracle_t)
+
+	manage_files_pattern($1, oracle_dir_t, oracle_exec_t)
+	manage_lnk_files_pattern($1, oracle_dir_t, oracle_exec_t)
+
+	manage_files_pattern($1, oracle_dir_t, oracle_tns_exec_t)
+	manage_lnk_files_pattern($1, oracle_dir_t, oracle_tns_exec_t)
+
+	manage_files_pattern($1, oracle_dir_t, oracle_conf_t)
+	manage_lnk_files_pattern($1, oracle_dir_t, oracle_conf_t)
+
+	manage_files_pattern($1, oracle_dir_t, oracle_data_t)
+	manage_lnk_files_pattern($1, oracle_dir_t, oracle_data_t)
 ')
 
-########################################
-## <summary>
-##	Role access for oracle
-## </summary>
-## <param name="role">
-##	<summary>
-##	Role allowed access
-##	</summary>
-## </param>
-## <param name="domain">
-##	<summary>
-##	User domain for the role
-##	</summary>
-## </param>
-#
-interface(`oracle_role',`
-	gen_require(`
-		type oracle_t;
-		attribute_role oracle_roles;
-	')
-
-	roleattribute $1 oracle_roles;
-
-	oracle_domtrans($2)
-
-	ps_process_pattern($2, oracle_t)
-	allow $2 oracle_t:process { signull signal sigkill };
-')

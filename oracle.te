@@ -1,82 +1,150 @@
 policy_module(oracle, 1.0.0)
 
-########################################
-#
-# Declarations
-#
+# oracle user should be confined to oracle_u:dbadm_r:dbadm_t
 
-attribute_role oracle_roles;
-roleattribute system_r oracle_roles;
+# TODO: create a domain for tnslsnr and dontaudit its behavior
+
+require {
+	type setroubleshootd_t;
+	type oracle_port_t;
+	type unconfined_t;
+	type setfiles_t;
+	type dbadm_t;
+	type user_t;
+	# class file { append execute execute_no_trans getattr ioctl lock map open read setattr write };
+	# class dir relabelto;
+
+}
+
+
+### Declarations
+
+# Types
 
 type oracle_t;
+type oracle_dir_t;
 type oracle_exec_t;
-type oracle_content_t;
-type oracle_port_t;
-application_domain(oracle_t, oracle_exec_t, oracle_content_t, oracle_port_t)
-role oracle_roles types oracle_t;
+type oracle_tns_exec_t;
+type oracle_conf_t;
+type oracle_data_t;
 
+init_daemon_domain(oracle_t, oracle_exec_t)
+init_daemon_domain(oracle_t, oracle_tns_exec_t)
+type_transition dbadm_t { oracle_exec_t oracle_tns_exec_t } : process oracle_t;
 permissive oracle_t;
 
-########################################
-#
-# oracle local policy
-#
-allow oracle_t self:capability { chown setgid setuid sys_admin sys_chroot };
-allow oracle_t self:process { fork ptrace setpgid setrlimit signal_perms };
+# Roles
 
-allow oracle_t self:fifo_file manage_fifo_file_perms;
-allow oracle_t self:unix_stream_socket create_stream_socket_perms;
+role oracle_r;
+role oracle_r types oracle_t;
+dbadm_role_change_to(oracle_r)
+unprivuser_role_change_to(oracle_r);
+role_transition { oracle_r } { oracle_exec_t oracle_tns_exec_t }: process oracle_r;
 
-allow oracle_t oracle_content_t:file read;
-allow oracle_t oracle_content_t:file write;
-allow oracle_t oracle_content_t:dir read;
-allow oracle_t oracle_content_t:dir write;
-allow oracle_t oracle_content_t:dir list_dir_perms;
+### Filesystem
 
-corenet_all_recvfrom_unlabeled(oracle_port_t)
-corenet_all_recvfrom_netlabel(oracle_port_t)
-corenet_tcp_sendrecv_all_if(oracle_port_t)
-corenet_udp_sendrecv_all_if(oracle_port_t)
-corenet_tcp_sendrecv_all_nodes(oracle_port_t)
-corenet_udp_sendrecv_all_nodes(oracle_port_t)
-corenet_tcp_sendrecv_all_ports(oracle_port_t)
-corenet_udp_sendrecv_all_ports(oracle_port_t)
-corenet_tcp_bind_all_nodes(oracle_port_t)
-corenet_tcp_bind_oracle_port(oracle_port_t)
+fs_associate(oracle_t)
+fs_associate(oracle_dir_t)
+fs_associate(oracle_exec_t)
+fs_associate(oracle_tns_exec_t)
+fs_associate(oracle_data_t)
+files_read_etc_files(oracle_t)
+files_dontaudit_write_etc_dirs(oracle_t)
 
-corenet_tcp_sendrecv_oracle_port(oracle_port_t)
-corenet_tcp_connect_oracle_port(oracle_port_t)
-corenet_tcp_connect_oracle_port(oracle_port_t)
-corenet_tcp_connect_oracle_port(oracle_port_t)
+oracle_manage_all_data(oracle_t)
+oracle_manage_all_data(dbadm_t)
+oracle_manage_all_data(user_t)
+oracle_manage_all_data(setfiles_t)
+oracle_manage_all_data(setroubleshootd_t)
 
-corenet_udp_bind_all_nodes(oracle_port_t)
-corenet_tcp_connect_generic_port(oracle_port_t)
+# Relabeling
+relabel_dirs_pattern(setfiles_t,oracle_dir_t,oracle_t)
+relabel_dirs_pattern(setfiles_t,oracle_dir_t,oracle_exec_t)
+relabel_dirs_pattern(setfiles_t,oracle_dir_t,oracle_tns_exec_t)
+relabel_dirs_pattern(setfiles_t,oracle_dir_t,oracle_conf_t)
+relabel_dirs_pattern(setfiles_t,oracle_dir_t,oracle_data_t)
+relabel_dirs_pattern(unconfined_t,oracle_dir_t,oracle_t)
+relabel_dirs_pattern(unconfined_t,oracle_dir_t,oracle_exec_t)
+relabel_dirs_pattern(unconfined_t,oracle_dir_t,oracle_tns_exec_t)
+relabel_dirs_pattern(unconfined_t,oracle_dir_t,oracle_conf_t)
+relabel_dirs_pattern(unconfined_t,oracle_dir_t,oracle_data_t)
 
-gen_require(`
-	type lo_node_t;
-')
+### Networking
 
-allow oracle_t lo_node_t:udp_socket node_bind;
+corenet_all_recvfrom_unlabeled(oracle_t)
+corenet_all_recvfrom_netlabel(oracle_t)
+
+## TCP
+
+# Bind
+corenet_tcp_sendrecv_all_if(oracle_t)
+corenet_tcp_bind_oracle_port(oracle_t)
+corenet_tcp_bind_all_nodes(oracle_t)
+
+# Transmission
+corenet_tcp_connect_oracle_port(oracle_t)
+corenet_tcp_connect_generic_port(oracle_t)
+
+corenet_tcp_sendrecv_all_nodes(oracle_t)
+corenet_tcp_sendrecv_oracle_port(oracle_t)
+corenet_tcp_sendrecv_generic_port(oracle_t)
+
+
+## UDP
+
+# Bind
+corenet_udp_sendrecv_all_if(oracle_t)
 corenet_udp_bind_all_nodes(oracle_t)
 corenet_udp_bind_generic_node(oracle_t)
 
-read_files_pattern(oracle_t,oracle_content_t,oracle_content_t)
-read_lnk_files_pattern(oracle_t,oracle_content_t,oracle_content_t)
+# Transmission
+
+corenet_udp_sendrecv_all_nodes(oracle_t)
 
 
+### Local Policy ###
 
 domain_use_interactive_fds(oracle_t)
-
-files_read_etc_files(oracle_t)
-
 auth_use_nsswitch(oracle_t)
-
 logging_send_syslog_msg(oracle_t)
-
 miscfiles_read_localization(oracle_t)
-
 sysnet_dns_name_resolve(oracle_t)
 
-optional_policy(`
-	kerberos_use(oracle_t)
-')
+#============= user_t ==============
+allow user_t oracle_dir_t:lnk_file getattr;
+allow user_t oracle_dir_t:dir { add_name getattr open read remove_name search write };
+allow user_t oracle_exec_t:file { execute execute_no_trans map getattr open read };
+allow user_t oracle_tns_exec_t:file { execute execute_no_trans map getattr open read };
+allow user_t oracle_data_t:file { append create getattr ioctl lock open read setattr unlink write };
+allow user_t oracle_t:file { append execute execute_no_trans map setattr write };
+allow user_t oracle_t:process { transition siginh };
+corenet_tcp_bind_oracle_port(user_t)
+files_manage_default_dirs(user_t)
+files_manage_default_files(user_t)
+files_read_default_symlinks(user_t)
+
+#============= dbadm_t ==============
+allow dbadm_t oracle_exec_t:file { execute execute_no_trans map write };
+allow dbadm_t oracle_tns_exec_t:file { execute execute_no_trans map write };
+allow dbadm_t oracle_t:process { transition siginh };
+
+#============= oracle_t ==============
+allow oracle_exec_t oracle_t:file { ioctl read getattr lock execute execute_no_trans entrypoint open };
+allow oracle_t oracle_data_t:{ dir file } write;
+allow oracle_t self:dir { getattr read lock write open search };
+allow oracle_t self:file { getattr read lock write open };
+allow oracle_t self:capability { chown setgid setuid sys_admin sys_chroot };
+allow oracle_t self:process { fork ptrace setpgid setrlimit signal_perms };
+allow oracle_t self:fifo_file manage_fifo_file_perms;
+allow oracle_t self:unix_stream_socket create_stream_socket_perms;
+
+#============= oracle_exec_t ==============
+allow dbadm_t oracle_exec_t:file { read getattr execute execute_no_trans map open };
+
+#============= oracle_conf_t ==============
+allow dbadm_t oracle_conf_t:{ dir file } { append getattr ioctl lock open read setattr write };
+allow unconfined_t oracle_conf_t:{ dir file } { append getattr ioctl lock open read setattr write };
+
+#============= oracle_data_t ==============
+allow dbadm_t oracle_data_t:{ dir file } { append getattr ioctl lock open read setattr write };
+allow unconfined_t oracle_data_t:{ dir file } { append getattr ioctl lock open read setattr write };

@@ -1,9 +1,20 @@
 # vim: sw=4:ts=4:et
 
-%define oracle_version 193000
+%define oracle_base /oraapp/oracle
+%define oracle_data /oraapp/oraInventory
+%define oracle_version 19.3.0.0.0
 
 %define relabel_files() \
-restorecon -R /oraapp/oracle/product/%{oracle_version}/bin/oracle; \
+restorecon -F -R -v %{oracle_base}/product/%{oracle_version}/bin \
+# restorecon -F -R -v %{oracle_base}/admin \
+# restorecon -F -R -v %{oracle_base}/audit \
+# restorecon -F -R -v %{oracle_base}/cfgtoollogs \
+# restorecon -F -R -v %{oracle_base}/checkpoints \
+# restorecon -F -R -v %{oracle_base}/diag \
+# restorecon -F -R -v %{oracle_base}/fast_recovery_area \
+# restorecon -F -R -v %{oracle_base}/oradata \
+# restorecon -F -R -v %{oracle_base}/recovery_area \
+# restorecon -F -R -v %{oracle_data}
 
 %define selinux_policyver 3.14.3-54
 
@@ -31,7 +42,7 @@ This package installs and sets up the  SELinux policy security module for oracle
 install -d %{buildroot}%{_datadir}/selinux/packages
 install -m 644 %{SOURCE0} %{buildroot}%{_datadir}/selinux/packages
 install -d %{buildroot}%{_datadir}/selinux/devel/include/contrib
-install -m 644 %{SOURCE1} %{buildroot}%{_datadir}/selinux/devel/include/contrib/
+install -m 644 %{SOURCE1} %{buildroot}%{_datadir}/selinux/devel/include/contrib
 install -d %{buildroot}%{_mandir}/man8/
 install -m 644 %{SOURCE2} %{buildroot}%{_mandir}/man8/oracle_selinux.8
 install -d %{buildroot}/etc/selinux/targeted/contexts/users/
