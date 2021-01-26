@@ -1,5 +1,58 @@
+## <summary>policy for oracle</summary>
+
+########################################
+## <summary>
+##	Transition to execute oracle_exec_t in the oracle domain.
+## </summary>
+## <param name="role">
+## <summary>
+##	Role allowed to transition into oracle domain
+## </summary>
+## </param>
+## <param name="type">
+## <summary>
+##	Type allowed to transition into oracle domain
+## </summary>
+## </param>
+#
+interface(`oracle_exec_roletrans_from',`
+	gen_require(`
+	    role oracle_r;
+		type oracle_t, oracle_exec_t;
+	')
+
+	allow $1 oracle_r;
+	role_transition $1 oracle_exec_t oracle_r;
+	domtrans_pattern($2, oracle_exec_t, oracle_t)
+')
 
 ## <summary>policy for oracle</summary>
+
+########################################
+## <summary>
+##	Transition to execute oracle_lsnr_exec_t in the oracle_lsnr domain.
+## </summary>
+## <param name="role">
+## <summary>
+##	Role allowed to transition into oracle listener domain
+## </summary>
+## </param>
+## <param name="type">
+## <summary>
+##	Type allowed to transition into oracle listener domain
+## </summary>
+## </param>
+#
+interface(`oracle_lsnr_exec_roletrans_from',`
+	gen_require(`
+	    role oracle_lsnr_r;
+		type oracle_lsnr_t, oracle_lsnr_exec_t;
+	')
+
+	allow $1 oracle_lsnr_r;
+	role_transition $1 oracle_lsnr_exec_t oracle_lsnr_r;
+	domtrans_pattern($2, oracle_lsnr_exec_t, oracle_lsnr_t)
+')
 
 ########################################
 ## <summary>
@@ -39,42 +92,78 @@ interface(`oracle_exec',`
 	can_exec($1, oracle_exec_t)
 ')
 
+
 ######################################
 ## <summary>
-##	Type allowed to manage oracle file and directory privileges
+##	Allow oracle to list process of the caller domain.
 ## </summary>
-## <param name="type">
+## <param name="domain">
 ##	<summary>
-##	Type allowed access.
+##	Oracle can list process of domain
 ##	</summary>
 ## </param>
 #
-interface(`oracle_manage_all_data',`
+interface(`oracle_list_process',`
 	gen_require(`
 		type oracle_t;
-		type oracle_dir_t;
-		type oracle_exec_t;
-		type oracle_tns_exec_t;
-		type oracle_conf_t;
-		type oracle_data_t;
 	')
 
-	allow $1 oracle_dir_t:dir list_dir_perms;
-	manage_dirs_pattern($1, oracle_dir_t, oracle_dir_t)
-
-	manage_files_pattern($1, oracle_dir_t, oracle_t)
-	manage_lnk_files_pattern($1, oracle_dir_t, oracle_t)
-
-	manage_files_pattern($1, oracle_dir_t, oracle_exec_t)
-	manage_lnk_files_pattern($1, oracle_dir_t, oracle_exec_t)
-
-	manage_files_pattern($1, oracle_dir_t, oracle_tns_exec_t)
-	manage_lnk_files_pattern($1, oracle_dir_t, oracle_tns_exec_t)
-
-	manage_files_pattern($1, oracle_dir_t, oracle_conf_t)
-	manage_lnk_files_pattern($1, oracle_dir_t, oracle_conf_t)
-
-	manage_files_pattern($1, oracle_dir_t, oracle_data_t)
-	manage_lnk_files_pattern($1, oracle_dir_t, oracle_data_t)
+	ps_process_pattern(oracle_t, $1)
 ')
 
+######################################
+## <summary>
+##	Allow oracle listener to list process of the caller domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Oracle listener can list process of domain
+##	</summary>
+## </param>
+#
+interface(`oracle_lsnr_list_process',`
+	gen_require(`
+		type oracle_lsnr_t;
+	')
+
+	ps_process_pattern(oracle_lsnr_t, $1)
+')
+
+######################################
+## <summary>
+##	Allow domain to use oracle libraries
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain permitted to exec libraries
+##	</summary>
+## </param>
+#
+interface(`oracle_use_libs',`
+        gen_require(`
+                type oracle_lib_t;
+        ')
+
+        list_dirs_pattern($1, oracle_lib_t, oracle_lib_t)
+        read_files_pattern($1, oracle_lib_t, oracle_lib_t)
+        read_lnk_files_pattern($1, oracle_lib_t, oracle_lib_t)
+        mmap_exec_files_pattern($1, oracle_lib_t, oracle_lib_t)
+')
+
+########################################
+## <summary>
+##      Connect to oracle unix stream socket.
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+interface(`oracle_noatsecure',`
+        gen_require(`
+                type oracle_t, oracle_lsnr_t;
+        ')
+
+    allow $1 { oracle_t oracle_lsnr_t }:process { noatsecure rlimitinh siginh };
+')
