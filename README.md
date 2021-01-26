@@ -19,3 +19,11 @@ rules. This will reveal access denial messages that are normally hidden.
 
 After taking both of these steps, `cat <audit log> | audit2allow -R` 
 will reveal any additional rules that should be considered for inclusion in this policy.
+
+## Building
+
+The simplest way to setup an environment suitable for building rpms 
+is to install the _*rpmdevtools*_ package and run `rpmdev-setuptree` 
+
+Afterwards you can download the source tarball from the releases page 
+and run: `rpmbuild -ta oracle-selinux-<version>.tar.gz`
