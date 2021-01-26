@@ -2,8 +2,7 @@
 
 %define oracle_base /oraapp/oracle
 %define oracle_data /oraapp/oraInventory
-%define selinux_policyver 3.14.3-54
-%define dist spe
+%define selinux_policyver 3.13.1-268
 
 %global selinuxtype targeted
 %global moduletype contrib
@@ -11,7 +10,7 @@
 
 Name:   oracle-selinux
 Version:	1.0.0
-Release:	0%{?dist}
+Release:	0%{?dist}.spe
 Summary:	SELinux policy module for oracle databases at Sony Pictures
 
 Group:	System Environment/Base		
@@ -19,12 +18,16 @@ License:	Proprietary
 Source:		%{name}-%{version}.tar.gz
 
 Requires: policycoreutils, libselinux-utils
-Requires(pre): policycoreutils-python-utils
 Requires(post): selinux-policy-base >= %{selinux_policyver}, policycoreutils
-Requires(preun): policycoreutils-python-utils
 Requires(postun): policycoreutils
 BuildRequires: selinux-policy-devel, policycoreutils-devel
 BuildArch: noarch
+
+%{?el7:Requires(pre): policycoreutils-python}
+%{?el7:Requires(preun): policycoreutils-python}
+
+%{?el8:Requires(pre): policycoreutils-python-utils}
+%{?el8:Requires(preun): policycoreutils-python-utils}
 
 %description
 This package installs and sets up the  SELinux policy security module for oracle.
@@ -62,14 +65,15 @@ install -m 644 oracle_u %{buildroot}/etc/selinux/targeted/contexts/users/oracle_
 %selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{modulename}.pp.bz2 || :
 /usr/sbin/semanage user -a -r s0-s0:c0.c1023 -R 'staff_r oracle_r oracle_lsnr_r' oracle_u || :
 
-for uid in `seq 10832 10855` 10866 ; do
-    user=$(getent passwd $uid | cut -f1 -d:)
-    if [[ $? -eq 0 && -n $user ]]; then
+while read -r user ; do
+    if [ -n $user ]; then
         /usr/sbin/semanage login -a -s oracle_u $user || :
     fi;
-done
+done <<<"`getent passwd | grep -E 'cyb-uprv-[pdq]dba' | cut -f1 -d:`"
 
-for group in oracle dba; do
+for group in oracle; do
+    getent group $group > /dev/null;
+
     if [ $? -eq 0 ]; then
         /usr/sbin/semanage login -a -s oracle_u %%${group} || :
     fi;
@@ -77,14 +81,15 @@ done
 
 %preun
 
-for uid in `seq 10832 10855` 10866 ; do
-    user=$(getent passwd $uid | cut -f1 -d:)
-    if [[ $? -eq 0 && -n $user ]]; then
+while read -r user ; do
+    if [ -n $user ]; then
         /usr/sbin/semanage login -d $user || :
     fi;
-done
+done <<<"`getent passwd | grep -E 'cyb-uprv-[pdq]dba' | cut -f1 -d:`"
 
-for group in oracle dba; do
+for group in oracle; do
+    getent group $group > /dev/null;
+
     if [ $? -eq 0 ]; then
         /usr/sbin/semanage login -d %%${group} || :
     fi;
