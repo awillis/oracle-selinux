@@ -47,6 +47,7 @@ logging_log_file(oracle_log_t)
 
 ### oracle_t
 
+corecmd_exec_bin(oracle_t)
 corenet_tcp_connect_http_port(oracle_t)
 corenet_tcp_connect_oracle_port(oracle_t)
 corenet_tcp_connect_xserver_port(oracle_t)
@@ -57,10 +58,14 @@ init_read_utmp(oracle_t)
 kernel_get_sysvipc_info(oracle_t)
 kernel_read_network_state(oracle_t)
 libs_legacy_use_ld_so(oracle_t)
+lvm_exec(oracle_t)
+mount_run(oracle_t, oracle_r)
 oracle_lsnr_list_process(oracle_t)
 oracle_use_libs(oracle_t)
+rhnsd_initrc_domtrans(oracle_t)
 sysnet_read_config(oracle_t)
 userdom_list_all_user_home_content(oracle_t)
+modutils_read_module_deps(oracle_t)
 
 ### oracle_lsnr_t
 
@@ -95,11 +100,18 @@ allow oracle_t self:udp_socket all_udp_socket_perms;
 allow oracle_t self:unix_dgram_socket all_unix_dgram_socket_perms;
 allow oracle_t self:unix_stream_socket all_unix_stream_socket_perms;
 allow oracle_t self:netlink_route_socket r_netlink_socket_perms;
+allow oracle_t { init_exec_t initrc_exec_t binfmt_misc_fs_t proc_security_t }:file { getattr open read };
+allow oracle_t { systemd_unit_file_t binfmt_misc_fs_t }:dir search_dir_perms;
 allow oracle_t proc_t:file { getattr open read };
+allow oracle_t http_port_t:tcp_socket name_connect;
 
 allow oracle_t { oracle_log_t oracle_db_t }:dir manage_dir_perms;
 allow oracle_t { oracle_log_t oracle_db_t }:file manage_file_perms;
+allow oracle_t oracle_log_t:sock_file unlink;
+allow oracle_t { echo_port_t http_cache_port_t unreserved_port_t }:tcp_socket name_connect;
+allow oracle_t { initrc_t unconfined_service_t }:process signull;
 allow oracle_t oracle_lsnr_t:process signal;
+allow oracle_t var_lock_t:lnk_file read;
 
 #============= oracle_lsnr_t ==============
 allow oracle_lsnr_t self:netlink_route_socket all_netlink_route_socket_perms;
@@ -108,6 +120,7 @@ allow oracle_lsnr_t oracle_port_t:tcp_socket all_tcp_socket_perms;
 allow oracle_lsnr_t oracle_home_t:file { append map execute ioctl open read setattr };
 allow oracle_lsnr_t oracle_db_t:dir search_dir_perms;
 allow oracle_lsnr_t oracle_db_t:file rw_file_perms;
+allow oracle_lsnr_t oracle_conf_t:file { setattr write };
 allow oracle_lsnr_t oracle_log_t:dir add_entry_dir_perms;
 allow oracle_lsnr_t oracle_log_t:file manage_file_perms;
 allow oracle_lsnr_t oracle_t:sem rw_sem_perms;
