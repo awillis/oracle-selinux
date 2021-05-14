@@ -9,8 +9,8 @@
 %global modulename oracle
 
 Name:   oracle-selinux
-Version:	1.0.0
-Release:	0%{?dist}.spe
+Version:	1.0.1
+Release:	1%{?dist}.spe
 Summary:	SELinux policy module for oracle databases at Sony Pictures
 
 Group:	System Environment/Base		
@@ -43,15 +43,20 @@ This package installs and sets up the  SELinux policy security module for oracle
 /usr/sbin/semodule -X 999 -r oracle
 
 %install
-install -d %{buildroot}%{_datadir}/selinux/packages
+install -d \
+    %{buildroot}%{_datadir}/selinux/packages \
+    %{buildroot}%{_datadir}/selinux/devel/include/contrib \
+    %{buildroot}%{_mandir}/man8 \
+    %{buildroot}/etc/selinux/targeted/contexts/users \
+    %{buildroot}/%{_bindir} \
+    %{buildroot}/etc/sudoers.d
 install -m 644 oracle.pp.bz2 %{buildroot}%{_datadir}/selinux/packages
-install -d %{buildroot}%{_datadir}/selinux/devel/include/contrib
 install -m 644 oracle.if %{buildroot}%{_datadir}/selinux/devel/include/contrib
-install -d %{buildroot}%{_mandir}/man8/
 install -m 644 oracle_selinux.8 %{buildroot}%{_mandir}/man8/oracle_selinux.8
 install -m 644 oracle_lsnr_selinux.8 %{buildroot}%{_mandir}/man8/oracle_lsnr_selinux.8
-install -d %{buildroot}/etc/selinux/targeted/contexts/users/
 install -m 644 oracle_u %{buildroot}/etc/selinux/targeted/contexts/users/oracle_u
+install -m 755 spe-oracle-port %{buildroot}/%{_bindir}/spe-oracle-port
+install -m 400 oracle-selinux.sudoers %{buildroot}/etc/sudoers.d/oracle-selinux
 
 %clean
 
@@ -63,37 +68,34 @@ install -m 644 oracle_u %{buildroot}/etc/selinux/targeted/contexts/users/oracle_
 
 %post
 %selinux_modules_install -s %{selinuxtype} %{_datadir}/selinux/packages/%{modulename}.pp.bz2 || :
-/usr/sbin/semanage user -a -r s0-s0:c0.c1023 -R 'staff_r oracle_r oracle_lsnr_r' oracle_u || :
+/usr/sbin/semanage user -a -r s0-s0:c0.c1023 -R 'staff_r secadm_r oracle_r oracle_lsnr_r' oracle_u || :
 
 while read -r user ; do
     if [ -n $user ]; then
-        /usr/sbin/semanage login -a -s oracle_u $user || :
+        /usr/sbin/semanage login -a -s oracle_u $user > /dev/null || :
     fi;
 done <<<"`getent passwd | grep -E 'cyb-uprv-[pdq]dba' | cut -f1 -d:`"
 
-for group in oracle; do
-    getent group $group > /dev/null;
 
-    if [ $? -eq 0 ]; then
-        /usr/sbin/semanage login -a -s oracle_u %%${group} || :
-    fi;
-done
+getent group dba > /dev/null;
+
+if [ $? -eq 0 ]; then
+    /usr/sbin/semanage login -a -s oracle_u %%dba || :
+fi;
 
 %preun
 
 while read -r user ; do
     if [ -n $user ]; then
-        /usr/sbin/semanage login -d $user || :
+        /usr/sbin/semanage login -d $user > /dev/null || :
     fi;
 done <<<"`getent passwd | grep -E 'cyb-uprv-[pdq]dba' | cut -f1 -d:`"
 
-for group in oracle; do
-    getent group $group > /dev/null;
+getent group dba > /dev/null;
 
-    if [ $? -eq 0 ]; then
-        /usr/sbin/semanage login -d %%${group} || :
-    fi;
-done
+if [ $? -eq 0 ]; then
+    /usr/sbin/semanage login -d %%dba || :
+fi;
 
 /usr/sbin/semanage user -d oracle_u || :
 
@@ -109,8 +111,17 @@ fi
 %{_mandir}/man8/oracle_selinux.8.*
 %{_mandir}/man8/oracle_lsnr_selinux.8.*
 /etc/selinux/targeted/contexts/users/oracle_u
+%attr(0755,root,root) %{_bindir}/spe-oracle-port
+%attr(0400,root,root) /etc/sudoers.d/oracle-selinux
 
 
 %changelog
-* Mon Jan 25 2021 Alan Willis <Alan_Willis@spe.sony.com> 1.0.0-0spe
+* Tue Feb 9 2021 Alan Willis <Alan_Willis@spe.sony.com> 1.0.1-1.el8.spe
+- Incorporated changes from test server
+- Added four 'enable_oracle' booleans for optional features
+
+* Thu Feb 4 2021 Alan Willis <Alan_Willis@spe.sony.com> 1.0.0-1.el8.spe
+- Flesh out usage of oracle_conf_t, add script for DBA port modification
+
+* Mon Jan 25 2021 Alan Willis <Alan_Willis@spe.sony.com> 1.0.0-0.el8.spe
 - Pre-release version for internal testing

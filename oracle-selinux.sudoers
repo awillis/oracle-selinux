@@ -1,0 +1,3 @@
+oracle	ALL=(root)	ROLE=secadm_r	NOPASSWD:	/usr/sbin/semanage port -a -t oracle_port_t -p *
+oracle	ALL=(root)	ROLE=secadm_r	NOPASSWD:	/usr/sbin/semanage port -d -t oracle_port_t -p *
+oracle	ALL=(root)	ROLE=secadm_r	NOPASSWD:	/usr/sbin/semanage port -l

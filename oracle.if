@@ -103,7 +103,7 @@ interface(`oracle_exec',`
 ##	</summary>
 ## </param>
 #
-interface(`oracle_list_process',`
+interface(`oracle_list_proc',`
 	gen_require(`
 		type oracle_t;
 	')
@@ -121,7 +121,7 @@ interface(`oracle_list_process',`
 ##	</summary>
 ## </param>
 #
-interface(`oracle_lsnr_list_process',`
+interface(`oracle_lsnr_list_proc',`
 	gen_require(`
 		type oracle_lsnr_t;
 	')
@@ -144,6 +144,7 @@ interface(`oracle_use_libs',`
                 type oracle_lib_t;
         ')
 
+	allow $1 oracle_lib_t:file execmod;
         list_dirs_pattern($1, oracle_lib_t, oracle_lib_t)
         read_files_pattern($1, oracle_lib_t, oracle_lib_t)
         read_lnk_files_pattern($1, oracle_lib_t, oracle_lib_t)
@@ -167,3 +168,23 @@ interface(`oracle_noatsecure',`
 
     allow $1 { oracle_t oracle_lsnr_t }:process { noatsecure rlimitinh siginh };
 ')
+
+########################################
+## <summary>
+##      Allow domain to execute oracle process transitions even if the filesystem is marked nosuid
+## </summary>
+## <param name="domain">
+##      <summary>
+##      Domain allowed access.
+##      </summary>
+## </param>
+#
+
+interface(`oracle_nosuid_transition',`
+    gen_require(`
+        type oracle_t, oracle_lsnr_t;
+    ')
+
+    allow $1 { oracle_t oracle_lsnr_t }:process2 nosuid_transition;
+')
+

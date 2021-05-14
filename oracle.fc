@@ -8,6 +8,8 @@
 /oraapp/oracle/product(/.*)/bin/lsnrctl 	--	gen_context(system_u:object_r:oracle_lsnr_exec_t,s0)
 /oraapp/oracle/product(/.*)/lib(/.*)? 	-d	gen_context(system_u:object_r:oracle_lib_t,s0)
 /oraapp/oracle/product(/.*)/lib(/.*)? 	--	gen_context(system_u:object_r:oracle_lib_t,s0)
+/oraapp/oracle/product(/.*)/dbs(/.*)?	-d	gen_context(system_u:object_r:oracle_conf_t,s0)
+/oraapp/oracle/product(/.*)/dbs(/.*)?	--	gen_context(system_u:object_r:oracle_conf_t,s0)
 /oraapp/oracle/checkpoints(/.*)?	--	gen_context(system_u:object_r:oracle_db_t,s0)
 /oraapp/oracle/checkpoints(/.*)?	-d	gen_context(system_u:object_r:oracle_db_t,s0)
 /oraapp/oracle/fast_recovery_area(/.*)?	--	gen_context(system_u:object_r:oracle_db_t,s0)

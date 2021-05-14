@@ -1,0 +1,30 @@
+#!/bin/sh
+
+export SUDO=/usr/bin/sudo
+export SEMANAGE=/usr/sbin/semanage
+
+export operation=$1
+export proto=$2
+export port=$3
+
+if [[ -z $proto || -z $port ]]; then
+	$SUDO $SEMANAGE port -l | grep oracle_port_t;
+	exit;
+fi
+
+case "$operation" in
+	add)
+		if [[ $proto =~ ^(tcp|udp)$ && $port =~ ^[0-9]+$ ]]; then
+			$SUDO $SEMANAGE port -a -t oracle_port_t -p $proto $port;
+		fi
+		;;
+	rm|del|delete)
+		if [[ $proto =~ ^(tcp|udp)$ && $port =~ ^[0-9]+$ ]]; then
+			$SUDO $SEMANAGE port -d -t oracle_port_t -p $proto $port;
+		fi
+		;;
+	*)
+		$SUDO $SEMANAGE port -l | grep oracle_port_t
+		;;
+esac
+

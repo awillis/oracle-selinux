@@ -1,4 +1,4 @@
-policy_module(oracle, 1.0.0)
+policy_module(oracle, 1.0.1)
 
 # Intended to be started by oracle_u:staff_r:staff_t, not via init or systemd
 
@@ -50,17 +50,35 @@ logging_log_file(oracle_log_t)
 corecmd_exec_bin(oracle_t)
 corenet_tcp_connect_http_port(oracle_t)
 corenet_tcp_connect_oracle_port(oracle_t)
-corenet_tcp_connect_xserver_port(oracle_t)
+corenet_udp_bind_generic_port(oracle_t)
+dev_read_kmsg(oracle_t)
+dev_rwx_zero(oracle_t)
 domain_user_exemption_target(oracle_t)
 fs_read_cgroup_files(oracle_t)
 files_read_default_symlinks(oracle_t)
+files_list_kernel_modules(oracle_t)
+files_list_isid_type_dirs(oracle_t)
+files_read_isid_type_files(oracle_t)
 init_read_utmp(oracle_t)
+init_read_state(oracle_t)
+init_status(oracle_t)
+kernel_list_proc(oracle_t)
 kernel_get_sysvipc_info(oracle_t)
+kernel_read_ring_buffer(oracle_t)
+kernel_read_state(oracle_t)
+kernel_read_system_state(oracle_t)
 kernel_read_network_state(oracle_t)
+kernel_request_load_module(oracle_t)
 libs_legacy_use_ld_so(oracle_t)
 lvm_exec(oracle_t)
+logging_read_audit_log(oracle_t)
+logging_read_syslog_pid(oracle_t)
+miscfiles_read_hwdata(oracle_t)
+modutils_list_module_config(oracle_t)
 mount_run(oracle_t, oracle_r)
-oracle_lsnr_list_process(oracle_t)
+networkmanager_read_state(oracle_t)
+storage_getattr_fixed_disk_dev(oracle_t)
+oracle_lsnr_list_proc(oracle_t)
 oracle_use_libs(oracle_t)
 rhnsd_initrc_domtrans(oracle_t)
 sysnet_read_config(oracle_t)
@@ -69,12 +87,15 @@ modutils_read_module_deps(oracle_t)
 
 ### oracle_lsnr_t
 
+corenet_tcp_bind_unreserved_ports(oracle_lsnr_t)
 corenet_tcp_connect_unreserved_ports(oracle_lsnr_t)
 domain_user_exemption_target(oracle_lsnr_t)
+files_manage_isid_type_files(oracle_lsnr_t)
 files_read_default_symlinks(oracle_lsnr_t)
+files_rw_isid_type_dirs(oracle_lsnr_t)
 init_read_utmp(oracle_lsnr_t)
 kernel_read_network_state(oracle_lsnr_t)
-oracle_list_process(oracle_lsnr_t)
+oracle_list_proc(oracle_lsnr_t)
 oracle_use_libs(oracle_lsnr_t)
 sysnet_read_config(oracle_lsnr_t)
 
@@ -82,6 +103,7 @@ sysnet_read_config(oracle_lsnr_t)
 
 domain_role_change_exemption(staff_t)
 oracle_noatsecure(staff_t)
+oracle_nosuid_transition(staff_t)
 oracle_exec_roletrans_from(staff_r, staff_t)
 oracle_lsnr_exec_roletrans_from(staff_r, staff_t)
 userdom_list_all_user_home_content(staff_t)
@@ -90,7 +112,7 @@ userdom_list_all_user_home_content(staff_t)
 ## Local Policy
 
 #============= oracle_t ==============
-allow oracle_t self:capability { chown setgid setuid sys_rawio net_bind_service audit_write sys_nice sys_chroot };
+allow oracle_t self:capability { chown setgid setuid sys_rawio net_bind_service audit_write sys_nice sys_chroot net_raw dac_override };
 allow oracle_t self:process { fork ptrace setpgid setrlimit signal_perms execmem getattr setsched };
 
 allow oracle_t self:key write;
@@ -99,19 +121,16 @@ allow oracle_t self:tcp_socket all_tcp_socket_perms;
 allow oracle_t self:udp_socket all_udp_socket_perms;
 allow oracle_t self:unix_dgram_socket all_unix_dgram_socket_perms;
 allow oracle_t self:unix_stream_socket all_unix_stream_socket_perms;
-allow oracle_t self:netlink_route_socket r_netlink_socket_perms;
-allow oracle_t { init_exec_t initrc_exec_t binfmt_misc_fs_t proc_security_t }:file { getattr open read };
-allow oracle_t { systemd_unit_file_t binfmt_misc_fs_t }:dir search_dir_perms;
+allow oracle_t self:netlink_route_socket rw_netlink_socket_perms;
+allow oracle_t self:rawip_socket { rw_socket_perms create };
 allow oracle_t proc_t:file { getattr open read };
-allow oracle_t http_port_t:tcp_socket name_connect;
-
+allow oracle_t oracle_conf_t:dir manage_dir_perms;
+allow oracle_t oracle_conf_t:file { manage_file_perms map };
 allow oracle_t { oracle_log_t oracle_db_t }:dir manage_dir_perms;
 allow oracle_t { oracle_log_t oracle_db_t }:file manage_file_perms;
-allow oracle_t oracle_log_t:sock_file unlink;
-allow oracle_t { echo_port_t http_cache_port_t unreserved_port_t }:tcp_socket name_connect;
-allow oracle_t { initrc_t unconfined_service_t }:process signull;
+allow oracle_t oracle_log_t:sock_file { create setattr unlink };
 allow oracle_t oracle_lsnr_t:process signal;
-allow oracle_t var_lock_t:lnk_file read;
+allow oracle_t oracle_lsnr_t:unix_stream_socket connectto;
 
 #============= oracle_lsnr_t ==============
 allow oracle_lsnr_t self:netlink_route_socket all_netlink_route_socket_perms;
@@ -120,13 +139,52 @@ allow oracle_lsnr_t oracle_port_t:tcp_socket all_tcp_socket_perms;
 allow oracle_lsnr_t oracle_home_t:file { append map execute ioctl open read setattr };
 allow oracle_lsnr_t oracle_db_t:dir search_dir_perms;
 allow oracle_lsnr_t oracle_db_t:file rw_file_perms;
-allow oracle_lsnr_t oracle_conf_t:file { setattr write };
 allow oracle_lsnr_t oracle_log_t:dir add_entry_dir_perms;
 allow oracle_lsnr_t oracle_log_t:file manage_file_perms;
 allow oracle_lsnr_t oracle_t:sem rw_sem_perms;
 allow oracle_lsnr_t oracle_t:shm rw_shm_perms;
 allow oracle_lsnr_t proc_t:file { getattr open read };
+allow oracle_lsnr_t oracle_conf_t:dir search_dir_perms;
+allow oracle_lsnr_t oracle_conf_t:file rw_file_perms;
+
 
 #============= staff_t ==============
 allow staff_t oracle_lib_t:dir search_dir_perms;
-allow staff_t xauth_t:process { noatsecure rlimitinh siginh };
+allow staff_t oracle_lib_t:file read_file_perms;
+
+
+### Tunables
+
+gen_tunable(enable_oracle_xauth, true)
+
+tunable_policy(`enable_oracle_xauth',`
+  corenet_tcp_connect_xserver_port(oracle_t)
+  allow staff_t xauth_t:process { noatsecure rlimitinh siginh };
+')
+
+gen_tunable(enable_oracle_oem, false)
+
+tunable_policy(`enable_oracle_oem',`
+  corenet_tcp_connect_http_port(oracle_t)
+  corenet_tcp_connect_echo_port(oracle_t)
+  corenet_tcp_connect_generic_port(oracle_t)
+  corenet_tcp_connect_http_cache_port(oracle_t)
+  allow oracle_t http_cache_port_t:tcp_socket { name_bind name_connect };
+')
+
+gen_tunable(enable_oracle_use_lvm, false)
+
+tunable_policy(`enable_oracle_use_lvm', `
+  dev_getattr_lvm_control(oracle_t)
+  lvm_read_config(oracle_t)
+')
+
+optional_policy(`
+  gen_tunable(enable_oracle_use_dbus, false)
+
+  tunable_policy(`enable_oracle_use_dbus', `
+    init_dbus_chat(oracle_t)
+    dbus_send_system_bus(oracle_t)
+    dbus_stream_connect_system_dbusd(oracle_t)
+  ')
+')
