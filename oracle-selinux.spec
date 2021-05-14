@@ -9,7 +9,7 @@
 %global modulename oracle
 
 Name:   oracle-selinux
-Version:	1.0.1
+Version:	1.0.2
 Release:	1%{?dist}.spe
 Summary:	SELinux policy module for oracle databases at Sony Pictures
 
@@ -116,6 +116,9 @@ fi
 
 
 %changelog
+* Fri May 14 2021 Alan Willis <Alan_Willis@spe.sony.com> 1.0.2-1.el8.spe
+- Incorporated updates from selinux troubleshooting dashboard in Splunk
+
 * Tue Feb 9 2021 Alan Willis <Alan_Willis@spe.sony.com> 1.0.1-1.el8.spe
 - Incorporated changes from test server
 - Added four 'enable_oracle' booleans for optional features

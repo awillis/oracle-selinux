@@ -1,4 +1,4 @@
-policy_module(oracle, 1.0.1)
+policy_module(oracle, 1.0.2)
 
 # Intended to be started by oracle_u:staff_r:staff_t, not via init or systemd
 
